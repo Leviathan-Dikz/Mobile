@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "MyDay",
+    "name": "DayNotes",
     "slug": "MyDay",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -11,6 +11,8 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.myday",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -34,7 +36,17 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-sqlite"
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Izinkan MyDay mengakses foto untuk dimasukkan ke catatan.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
+      "expo-sqlite",
+      "expo-notifications",
+      "./plugins/withTaskWidget"
     ],
     "experiments": {
       "typedRoutes": true

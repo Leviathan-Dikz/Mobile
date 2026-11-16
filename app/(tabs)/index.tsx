@@ -1,14 +1,26 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Link, useFocusEffect } from "expo-router";
+import { Link, router, useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useAppTheme } from "@/src/theme/ThemeContext";
+import { syncTaskWidgetSnapshot } from "@/src/widgets/taskWidget";
+
+type HomeTask = {
+  id: number;
+  title: string;
+  description: string | null;
+  scheduled_date: string | null;
+  completed: number;
+};
 
 export default function HomeScreen() {
   const db = useSQLiteContext();
+  const { colors } = useAppTheme();
 
   const [totalTasks, setTotalTasks] = useState(0);
   const [completedTasks, setCompletedTasks] = useState(0);
+  const [homeTasks, setHomeTasks] = useState<HomeTask[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -23,9 +35,15 @@ export default function HomeScreen() {
           "SELECT COUNT(*) AS total FROM tasks WHERE completed = 1",
         );
 
+        const latestTasks = await db.getAllAsync<HomeTask>(
+          "SELECT id, title, description, scheduled_date, completed FROM tasks ORDER BY completed ASC, id DESC LIMIT 5",
+        );
+
         if (active) {
           setTotalTasks(total?.total ?? 0);
           setCompletedTasks(completed?.total ?? 0);
+          setHomeTasks(latestTasks);
+          await syncTaskWidgetSnapshot(db).catch(console.error);
         }
       }
 
@@ -59,16 +77,16 @@ export default function HomeScreen() {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>{greeting}</Text>
-          <Text style={styles.heading}>MyDay</Text>
-          <Text style={styles.date}>{today}</Text>
+          <Text style={[styles.greeting, { color: colors.muted }]}>{greeting}</Text>
+          <Text style={[styles.heading, { color: colors.text }]}>MyDay</Text>
+          <Text style={[styles.date, { color: colors.muted }]}>{today}</Text>
         </View>
 
         <View style={styles.avatar}>
@@ -88,20 +106,20 @@ export default function HomeScreen() {
 
       {/* Overview */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Today's Overview</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Today's Overview</Text>
       </View>
 
       <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
+          <View style={[styles.statCard, { backgroundColor: colors.card }]}>
           <View style={styles.statIcon}>
             <Ionicons name="list-outline" size={22} color="#6C63FF" />
           </View>
 
-          <Text style={styles.statNumber}>{totalTasks}</Text>
-          <Text style={styles.statLabel}>Total Tasks</Text>
+          <Text style={[styles.statNumber, { color: colors.text }]}>{totalTasks}</Text>
+          <Text style={[styles.statLabel, { color: colors.muted }]}>Total Tasks</Text>
         </View>
 
-        <View style={styles.statCard}>
+        <View style={[styles.statCard, { backgroundColor: colors.card }]}>
           <View style={[styles.statIcon, { backgroundColor: "#E5F8EF" }]}>
             <Ionicons
               name="checkmark-circle-outline"
@@ -110,62 +128,60 @@ export default function HomeScreen() {
             />
           </View>
 
-          <Text style={styles.statNumber}>{completedTasks}</Text>
-          <Text style={styles.statLabel}>Completed</Text>
+          <Text style={[styles.statNumber, { color: colors.text }]}>{completedTasks}</Text>
+          <Text style={[styles.statLabel, { color: colors.muted }]}>Completed</Text>
         </View>
       </View>
 
       {/* Progress */}
-      <View style={styles.progressCard}>
+      <View style={[styles.progressCard, { backgroundColor: colors.card }]}>
         <View style={styles.progressHeader}>
-          <Text style={styles.sectionTitle}>Daily Progress</Text>
-          <Text style={styles.progressPercentage}>{progress}%</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Daily Progress</Text>
+          <Text style={[styles.progressPercentage, { color: colors.primary }]}>{progress}%</Text>
         </View>
 
         <View style={styles.progressBackground}>
           <View style={[styles.progressFill, { width: `${progress}%` }]} />
         </View>
 
-        <Text style={styles.progressSubtitle}>
+        <Text style={[styles.progressSubtitle, { color: colors.muted }]}>
           {completedTasks} of {totalTasks} tasks completed
         </Text>
       </View>
 
       {/* Tasks */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>My Tasks</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>My Tasks</Text>
 
         <Link href="/(tabs)/tasks" asChild>
           <Pressable>
-            <Text style={styles.seeAll}>See all</Text>
+            <Text style={[styles.seeAll, { color: colors.primary }]}>See all</Text>
           </Pressable>
         </Link>
       </View>
 
-      <View style={styles.emptyCard}>
-        <View style={styles.emptyIcon}>
-          <Ionicons name="clipboard-outline" size={35} color="#6C63FF" />
+      {homeTasks.length > 0 ? (
+        <View style={[styles.taskList, { backgroundColor: colors.card }]}> 
+          {homeTasks.map((task) => (
+            <Pressable key={task.id} style={[styles.homeTaskRow, { borderBottomColor: colors.border }]} onPress={() => router.push("/(tabs)/tasks")} accessibilityRole="button" accessibilityLabel={`Open task ${task.title}`}>
+              <Ionicons name={task.completed === 1 ? "checkmark-circle" : "ellipse-outline"} size={24} color={task.completed === 1 ? colors.success : colors.muted} />
+              <View style={styles.homeTaskCopy}>
+                <Text style={[styles.homeTaskTitle, { color: colors.text }, task.completed === 1 && styles.homeTaskCompleted]} numberOfLines={1}>{task.title}</Text>
+                <Text style={[styles.homeTaskMeta, { color: colors.muted }]} numberOfLines={1}>{task.scheduled_date ? `Jadwal: ${task.scheduled_date}` : task.description?.trim() || "Belum ada jadwal"}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+            </Pressable>
+          ))}
+          <Link href="/(tabs)/tasks" asChild><Pressable style={styles.viewTasksButton}><Text style={[styles.viewTasksText, { color: colors.primary }]}>Lihat semua task</Text><Ionicons name="arrow-forward" size={16} color={colors.primary} /></Pressable></Link>
         </View>
-
-        <Text style={styles.emptyTitle}>
-          {totalTasks === 0 ? "No tasks yet" : "Your tasks are ready"}
-        </Text>
-
-        <Text style={styles.emptySubtitle}>
-          {totalTasks === 0
-            ? "Start organizing your day by adding your first task."
-            : "Open your task list to manage your activities."}
-        </Text>
-
-        <Link href="/(tabs)/tasks" asChild>
-          <Pressable style={styles.addButton}>
-            <Ionicons name="add" size={20} color="#FFFFFF" />
-            <Text style={styles.addButtonText}>
-              {totalTasks === 0 ? "Add New Task" : "View My Tasks"}
-            </Text>
-          </Pressable>
-        </Link>
-      </View>
+      ) : (
+        <View style={[styles.emptyCard, { backgroundColor: colors.card }]}>
+          <View style={styles.emptyIcon}><Ionicons name="clipboard-outline" size={35} color="#6C63FF" /></View>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>No tasks yet</Text>
+          <Text style={[styles.emptySubtitle, { color: colors.muted }]}>Start organizing your day by adding your first task.</Text>
+          <Link href="/(tabs)/tasks" asChild><Pressable style={styles.addButton}><Ionicons name="add" size={20} color="#FFFFFF" /><Text style={styles.addButtonText}>Add New Task</Text></Pressable></Link>
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -314,6 +330,45 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 23,
     alignItems: "center",
+  },
+  taskList: {
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    overflow: "hidden",
+  },
+  homeTaskRow: {
+    minHeight: 64,
+    flexDirection: "row",
+    alignItems: "center",
+    borderBottomWidth: 1,
+  },
+  homeTaskCopy: {
+    flex: 1,
+    marginLeft: 12,
+    marginRight: 8,
+  },
+  homeTaskTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  homeTaskCompleted: {
+    textDecorationLine: "line-through",
+    opacity: 0.55,
+  },
+  homeTaskMeta: {
+    fontSize: 11,
+    marginTop: 4,
+  },
+  viewTasksButton: {
+    minHeight: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+  },
+  viewTasksText: {
+    fontSize: 12,
+    fontWeight: "800",
   },
   emptyIcon: {
     width: 65,

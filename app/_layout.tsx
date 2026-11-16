@@ -10,9 +10,11 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 
-import { SQLiteProvider } from 'expo-sqlite';
-import { useColorScheme } from '@/components/useColorScheme';
+import { SQLiteProvider, useSQLiteContext } from 'expo-sqlite';
 import { initializeDatabase } from '@/src/database/init';
+import { AppThemeProvider, useAppTheme } from '@/src/theme/ThemeContext';
+import { syncTaskWidgetSnapshot } from '@/src/widgets/taskWidget';
+import { AppState } from 'react-native';
 
 export {
   ErrorBoundary,
@@ -48,17 +50,34 @@ export default function RootLayout() {
       databaseName="myday.db"
       onInit={initializeDatabase}
     >
-      <RootLayoutNav />
+      <AppThemeProvider>
+        <WidgetSnapshotSync />
+        <RootLayoutNav />
+      </AppThemeProvider>
     </SQLiteProvider>
   );
 }
 
+function WidgetSnapshotSync() {
+  const db = useSQLiteContext();
+
+  useEffect(() => {
+    void syncTaskWidgetSnapshot(db).catch(console.error);
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void syncTaskWidgetSnapshot(db).catch(console.error);
+    });
+    return () => subscription.remove();
+  }, [db]);
+
+  return null;
+}
+
 function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+  const { scheme } = useAppTheme();
 
   return (
     <ThemeProvider
-      value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}
+      value={scheme === 'dark' ? DarkTheme : DefaultTheme}
     >
       <Stack>
         <Stack.Screen
@@ -68,6 +87,22 @@ function RootLayoutNav() {
         <Stack.Screen
           name="modal"
           options={{ presentation: 'modal' }}
+        />
+        <Stack.Screen
+          name="note-editor"
+          options={{ headerShown: false, animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+          name="habits"
+          options={{ headerShown: false, animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+          name="pomodoro"
+          options={{ headerShown: false, animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+          name="settings"
+          options={{ headerShown: false, animation: 'slide_from_right' }}
         />
       </Stack>
     </ThemeProvider>

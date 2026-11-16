@@ -1,20 +1,22 @@
 
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useAppTheme } from '@/src/theme/ThemeContext';
 
 export default function TabLayout() {
+  const { colors } = useAppTheme();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#6C63FF',
-        tabBarInactiveTintColor: '#9295A5',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.muted,
         tabBarStyle: {
-          height: 65,
+          height: 78,
           paddingTop: 8,
-          paddingBottom: 8,
-          backgroundColor: '#FFFFFF',
-          borderTopColor: '#EEEEF3',
+          paddingBottom: 16,
+          backgroundColor: colors.card,
+          borderTopColor: colors.border,
         },
         tabBarLabelStyle: {
           fontSize: 11,
@@ -70,6 +72,10 @@ export default function TabLayout() {
             <Ionicons name="grid-outline" size={size} color={color as string} />
           ),
         }}
+      />
+      <Tabs.Screen
+        name="two"
+        options={{ href: null }}
       />
     </Tabs>
   );
