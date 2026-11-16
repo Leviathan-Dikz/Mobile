@@ -50,6 +50,17 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "f0c50e3f-e61c-4f1d-b1c1-a82313d64abb"
+      }
+    },
+    "owner": "dikzzx125"
   }
 }
